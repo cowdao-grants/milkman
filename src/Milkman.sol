@@ -26,6 +26,7 @@ contract Milkman {
         address fromToken,
         address toToken,
         address to,
+        bytes32 appData,
         address priceChecker,
         bytes priceCheckerData
     );
@@ -43,7 +44,7 @@ contract Milkman {
     address internal immutable ROOT_MILKMAN;
 
     /// @dev Hash of the order data, hashed like so:
-    ///      kekkak256(abi.encode(orderCreator, receiver, fromToken, toToken, amountIn, priceChecker, priceCheckerData)).
+    ///      kekkak256(abi.encode(orderCreator, receiver, fromToken, toToken, amountIn, appData, priceChecker, priceCheckerData)).
     ///      In the root contract, it's set to `ROOT_MILKMAN_SWAP_HASH`.
     bytes32 public swapHash = ROOT_MILKMAN_SWAP_HASH;
 
@@ -64,6 +65,7 @@ contract Milkman {
         IERC20 fromToken,
         IERC20 toToken,
         address to,
+        bytes32 appData,
         address priceChecker,
         bytes calldata priceCheckerData
     )
@@ -77,12 +79,12 @@ contract Milkman {
         fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
 
         bytes32 _swapHash =
-            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, priceChecker, priceCheckerData));
+            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, appData, priceChecker, priceCheckerData));
 
         Milkman(orderContract).initialize(fromToken, _swapHash);
 
         emit SwapRequested(
-            orderContract, msg.sender, amountIn, address(fromToken), address(toToken), to, priceChecker, priceCheckerData
+            orderContract, msg.sender, amountIn, address(fromToken), address(toToken), to, appData, priceChecker, priceCheckerData
             );
     }
 
@@ -100,6 +102,7 @@ contract Milkman {
         IERC20 fromToken,
         IERC20 toToken,
         address to,
+        bytes32 appData,
         address priceChecker,
         bytes calldata priceCheckerData
     )
@@ -110,7 +113,7 @@ contract Milkman {
         require(_storedSwapHash != ROOT_MILKMAN_SWAP_HASH, "!cancel_from_root");
 
         bytes32 _calculatedSwapHash =
-            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, priceChecker, priceCheckerData));
+            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, appData, priceChecker, priceCheckerData));
 
         require(_storedSwapHash == _calculatedSwapHash, "!valid_creator_proof");
 
@@ -158,6 +161,7 @@ contract Milkman {
                 _order.sellToken,
                 _order.buyToken,
                 _order.sellAmount.add(_order.feeAmount),
+                _order.appData,
                 _priceChecker,
                 _priceCheckerData
             )

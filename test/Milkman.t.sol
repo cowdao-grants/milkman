@@ -65,7 +65,7 @@ contract MilkmanTest is Test {
     bytes internal constant ZERO_BYTES = bytes("0");
 
     bytes32 public constant SWAP_REQUESTED_EVENT =
-        keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
+        keccak256("SwapRequested(address,address,uint256,address,address,address,bytes32,address,bytes)");
 
     address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
@@ -396,6 +396,7 @@ contract MilkmanTest is Test {
             fromToken,
             toToken,
             address(this), // Receiver address
+            APP_DATA,
             priceChecker,
             priceCheckerData
         );
@@ -405,8 +406,8 @@ contract MilkmanTest is Test {
         address orderContract = address(0);
         for (uint8 i = 0; i < entries.length; ++i) {
             if (entries[i].topics[0] == SWAP_REQUESTED_EVENT) {
-                (orderContract,,,,,,,) =
-                    (abi.decode(entries[i].data, (address, address, uint256, address, address, address, address, bytes)));
+                (orderContract,,,,,,,,) =
+                    (abi.decode(entries[i].data, (address, address, uint256, address, address, address, bytes32, address, bytes)));
             }
         }
         assertNotEq(orderContract, address(0));
@@ -415,7 +416,7 @@ contract MilkmanTest is Test {
 
         {
             bytes32 expectedSwapHash =
-                keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData));
+                keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, APP_DATA, priceChecker, priceCheckerData));
             assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
         }
 

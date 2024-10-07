@@ -17,6 +17,7 @@ the following parameters:
 - `fromToken`: ERC20 you're swapping out of
 - `toToken`: ERC20 you're swapping into
 - `to`: the intended receiver of the bought tokens
+- `appData`: the exact app data hash used in the order
 - `priceChecker`: the address of a price checker, or `address(0)` for none; explained below
 - `priceCheckerData`: encoded data to pass to the price checker; explained below
 
