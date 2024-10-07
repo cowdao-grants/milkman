@@ -71,7 +71,6 @@ contract MilkmanTest is Test {
 
     mapping(string => address) private tokenAddress;
     mapping(string => string) private sellToBuyMap;
-    string[] private tokensToSell;
     mapping(string => uint256) private amounts;
     mapping(string => address) private whaleAddresses;
     mapping(string => address) private priceCheckers;
@@ -256,18 +255,18 @@ contract MilkmanTest is Test {
         aavePriceFeeds[0] = 0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012;
         bool[] memory aaveReverses = new bool[](1);
         aaveReverses[0] = false;
-        priceCheckerDatas["AAVE"] = dynamicSlippagePriceCheckerData(1000, 
+        priceCheckerDatas["AAVE"] = dynamicSlippagePriceCheckerData(1000,
             chainlinkExpectedOutData(aavePriceFeeds, aaveReverses));
-        
+
         address[] memory batPriceFeeds = new address[](2);
         batPriceFeeds[0] = 0x0d16d4528239e9ee52fa531af613AcdB23D88c94;
         batPriceFeeds[1] = 0x194a9AaF2e0b67c35915cD01101585A33Fe25CAa;
         bool[] memory batReverses = new bool[](2);
         batReverses[0] = false;
         batReverses[1] = true;
-        priceCheckerDatas["BAT"] = dynamicSlippagePriceCheckerData(600, 
+        priceCheckerDatas["BAT"] = dynamicSlippagePriceCheckerData(600,
             chainlinkExpectedOutData(batPriceFeeds, batReverses));
-        
+
         priceCheckerDatas["WETH"] = dynamicSlippagePriceCheckerData(200, ssbWethExpectedOutData());
 
         address[] memory uniSwapPath = new address[](4);
@@ -279,8 +278,8 @@ contract MilkmanTest is Test {
         uniPoolFees[0] = 30;
         uniPoolFees[1] = 5;
         uniPoolFees[2] = 1;
-        priceCheckerDatas["UNI"] = dynamicSlippagePriceCheckerData(500, 
-            univ3ExpectedOutData(uniSwapPath, uniPoolFees));  
+        priceCheckerDatas["UNI"] = dynamicSlippagePriceCheckerData(500,
+            univ3ExpectedOutData(uniSwapPath, uniPoolFees));
 
         priceCheckerDatas["BAL"] = dynamicSlippagePriceCheckerData(50, ssbWethExpectedOutData());
 
@@ -288,7 +287,7 @@ contract MilkmanTest is Test {
         yfiPriceFeeds[0] = 0xA027702dbb89fbd58938e4324ac03B58d812b0E1;
         bool[] memory yfiReverses = new bool[](1);
         yfiReverses[0] = false;
-        priceCheckerDatas["YFI"] = dynamicSlippagePriceCheckerData(400, 
+        priceCheckerDatas["YFI"] = dynamicSlippagePriceCheckerData(400,
             chainlinkExpectedOutData(yfiPriceFeeds, yfiReverses));
 
         address[] memory usdtPriceFeeds = new address[](2);
@@ -297,10 +296,10 @@ contract MilkmanTest is Test {
         bool[] memory usdtReverses = new bool[](2);
         usdtReverses[0] = false;
         usdtReverses[1] = true;
-        priceCheckerDatas["USDT"] = dynamicSlippagePriceCheckerData(1000, 
+        priceCheckerDatas["USDT"] = dynamicSlippagePriceCheckerData(1000,
             chainlinkExpectedOutData(usdtPriceFeeds, usdtReverses));
 
-        priceCheckerDatas["COW"] = fixedMinOutPriceCheckerData(100_000 * 1e18); 
+        priceCheckerDatas["COW"] = fixedMinOutPriceCheckerData(100_000 * 1e18);
 
         bytes[] memory expectedOutDatas = new bytes[](2);
 
@@ -315,217 +314,259 @@ contract MilkmanTest is Test {
         alcxSwapPath[0] = tokenAddress["ALCX"];
         alcxSwapPath[1] = tokenAddress["WETH"];
         alcxSwapPath[2] = tokenAddress["TOKE"];
-        
+
         address[] memory alcxExpectedOutCalculators = new address[](2);
         alcxExpectedOutCalculators[0] = chainlinkExpectedOutCalculator;
         alcxExpectedOutCalculators[1] = sushiswapExpectedOutCalculator;
 
-        priceCheckerDatas["ALCX"] = dynamicSlippagePriceCheckerData(600, 
+        priceCheckerDatas["ALCX"] = dynamicSlippagePriceCheckerData(600,
             metaExpectedOutData(alcxSwapPath, alcxExpectedOutCalculators, expectedOutDatas)
         );
-
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT", "COW", "ALCX"];
     }
 
-    function testRequestSwapExactTokensForTokens() public {
-        for (uint8 i = 0; i < tokensToSell.length; i++) {
-            {
-                string memory tokenToSell = tokensToSell[i];
-                string memory tokenToBuy = sellToBuyMap[tokenToSell];
-                fromToken = IERC20(tokenAddress[tokenToSell]);
-                toToken = IERC20(tokenAddress[tokenToBuy]);
-                uint8 decimals = IERC20Metadata(address(fromToken)).decimals();
-                amountIn = amounts[tokenToSell] * (10 ** decimals);
-                whale = whaleAddresses[tokenToSell];
-                priceChecker = priceCheckers[tokenToSell];
-                priceCheckerData = priceCheckerDatas[tokenToSell];
-            }
+    function testRequestSwapExactTokensForTokenTOKE() external {
+        requestSwapExactTokensForToken("TOKE");
+    }
 
-            vm.startPrank(whale);
-            fromToken.safeApprove(address(milkman), amountIn);
-            vm.stopPrank();
+    function testRequestSwapExactTokensForTokenGUSD() external {
+        requestSwapExactTokensForToken("GUSD");
+    }
 
-            vm.recordLogs();
+    function testRequestSwapExactTokensForTokenUSDC() external {
+        requestSwapExactTokensForToken("USDC");
+    }
 
-            vm.prank(whale);
-            milkman.requestSwapExactTokensForTokens(
-                amountIn,
-                fromToken,
-                toToken,
-                address(this), // Receiver address
-                priceChecker,
-                priceCheckerData
-            );
-            
-            Vm.Log[] memory entries = vm.getRecordedLogs();
+    function testRequestSwapExactTokensForTokenAAVE() external {
+        requestSwapExactTokensForToken("AAVE");
+    }
 
-            address orderContract = address(0);
-            for (uint8 i = 0; i < entries.length; ++i) {
-                if (entries[i].topics[0] == SWAP_REQUESTED_EVENT) {
-                    (orderContract,,,,,,,) =
-                        (abi.decode(entries[i].data, (address, address, uint256, address, address, address, address, bytes)));
-                }
-            }
-            assertNotEq(orderContract, address(0));
+    function testRequestSwapExactTokensForTokenBAT() external {
+        requestSwapExactTokensForToken("BAT");
+    }
 
-            assertEq(fromToken.balanceOf(orderContract), amountIn);
+    function testRequestSwapExactTokensForTokenWETH() external {
+        requestSwapExactTokensForToken("WETH");
+    }
 
-            {
-                bytes32 expectedSwapHash =
-                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData));
-                assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
-            }
+    function testRequestSwapExactTokensForTokenUNI() external {
+        requestSwapExactTokensForToken("UNI");
+    }
 
-            uint256 buyAmount = 0;
-            uint256 feeAmount = 0;
-            {
-                string[] memory headers = new string[](1);
-                headers[0] = "Content-Type: application/json";
+    function testRequestSwapExactTokensForTokenBAL() external {
+        requestSwapExactTokensForToken("BAL");
+    }
 
-                (uint256 status, bytes memory data) = "https://api.cow.fi/mainnet/api/v1/quote".post(
-                    headers,
-                    string(
-                        abi.encodePacked(
-                            '{"sellToken": "',
-                            vm.toString(address(fromToken)),
-                            '", "buyToken": "',
-                            vm.toString(address(toToken)),
-                            '", "from": "',
-                            vm.toString(whale),
-                            '", "kind": "sell", "sellAmountBeforeFee": "',
-                            vm.toString(amountIn),
-                            '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
-                            "}"
-                        )
-                    )
-                );
+    function testRequestSwapExactTokensForTokenYFI() external {
+        requestSwapExactTokensForToken("YFI");
+    }
 
-                assertEq(status, 200);
+    function testRequestSwapExactTokensForTokenUSDT() external {
+        requestSwapExactTokensForToken("USDT");
+    }
 
-                string memory json = string(data);
+    function testRequestSwapExactTokensForTokenCOW() external {
+        requestSwapExactTokensForToken("COW");
+    }
 
-                buyAmount = parseUint(json, ".quote.buyAmount");
-                feeAmount = parseUint(json, ".quote.feeAmount");
-            }
+    function testRequestSwapExactTokensForTokenALCX() external {
+        requestSwapExactTokensForToken("ALCX");
+    }
 
-            uint256 amountToSell = amountIn - feeAmount;
-            assertLt(amountToSell, amountIn);
-
-            assertTrue(
-                IPriceChecker(priceChecker).checkPrice(
-                    amountIn, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
-                )
-            );
-
-
-            uint32 validTo = uint32(block.timestamp) + 60 * 60 * 24;
-
-            GPv2Order.Data memory order = GPv2Order.Data({
-                sellToken: CoWIERC20(address(fromToken)),
-                buyToken: CoWIERC20(address(toToken)),
-                receiver: address(this),
-                sellAmount: amountToSell,
-                feeAmount: feeAmount,
-                buyAmount: buyAmount,
-                partiallyFillable: false,
-                kind: GPv2Order.KIND_SELL,
-                sellTokenBalance: GPv2Order.BALANCE_ERC20,
-                buyTokenBalance: GPv2Order.BALANCE_ERC20,
-                validTo: validTo,
-                appData: APP_DATA
-            });
-
-            bytes memory signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-
-            bytes32 orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-
-            {
-                uint256 gasBefore = gasleft();
-                bytes4 isValidSignature = Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-                uint256 gasAfter = gasleft();
-
-                uint256 gasConsumed = gasBefore.sub(gasAfter);
-
-                console.log("gas consumed:", gasConsumed);
-
-                assertLt(gasConsumed, 1_000_000);
-
-                assertEq(isValidSignature, MAGIC_VALUE);
-            }
-
-            // check that price checker returns false with bad price
-
-            uint256 badAmountOut = buyAmount / 10;
-
-            assertFalse(
-                IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, address(fromToken), address(toToken), feeAmount, badAmountOut, priceCheckerData
-                )
-            );
-
-            // check that milkman reverts with bad price
-
-            order.buyAmount = badAmountOut;
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            vm.expectRevert("invalid_min_out");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.buyAmount = buyAmount;
-
-            // check that milkman reverts if the hash doesn't match the order
-
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            order.validTo = validTo + 10;
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("!match");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.validTo = validTo;
-
-            // check that milkman reverts if the keeper generates a buy order
-
-            order.kind = GPv2Order.KIND_BUY;
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("!kind_sell");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.kind = GPv2Order.KIND_SELL;
-
-            // check that milkman reverts if the validTo is too close
-
-            uint32 badValidTo = uint32(block.timestamp) + 2 * 60;
-            order.validTo = badValidTo;
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("expires_too_soon");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.validTo = validTo;
-
-            // check that milkman reverts for non-fill-or-kill orders
-
-            order.partiallyFillable = true;
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("!fill_or_kill");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.partiallyFillable = false;
-            
-            // check that milkman reverts if set to non ERC20 sell balance
-
-            order.sellTokenBalance = GPv2Order.BALANCE_EXTERNAL;
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("!sell_erc20");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.sellTokenBalance = GPv2Order.BALANCE_ERC20;
-
-            // check that milkman reverts if set to non ERC20 buy balance
-
-            order.buyTokenBalance = GPv2Order.BALANCE_INTERNAL;
-            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
-            vm.expectRevert("!buy_erc20");
-            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
-            order.buyTokenBalance = GPv2Order.BALANCE_ERC20;
+    function requestSwapExactTokensForToken(string memory tokenToSell) internal {
+        {
+            string memory tokenToBuy = sellToBuyMap[tokenToSell];
+            fromToken = IERC20(tokenAddress[tokenToSell]);
+            toToken = IERC20(tokenAddress[tokenToBuy]);
+            uint8 decimals = IERC20Metadata(address(fromToken)).decimals();
+            amountIn = amounts[tokenToSell] * (10 ** decimals);
+            whale = whaleAddresses[tokenToSell];
+            priceChecker = priceCheckers[tokenToSell];
+            priceCheckerData = priceCheckerDatas[tokenToSell];
         }
+
+        vm.startPrank(whale);
+        fromToken.safeApprove(address(milkman), amountIn);
+        vm.stopPrank();
+
+        vm.recordLogs();
+
+        vm.prank(whale);
+        milkman.requestSwapExactTokensForTokens(
+            amountIn,
+            fromToken,
+            toToken,
+            address(this), // Receiver address
+            priceChecker,
+            priceCheckerData
+        );
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        address orderContract = address(0);
+        for (uint8 i = 0; i < entries.length; ++i) {
+            if (entries[i].topics[0] == SWAP_REQUESTED_EVENT) {
+                (orderContract,,,,,,,) =
+                    (abi.decode(entries[i].data, (address, address, uint256, address, address, address, address, bytes)));
+            }
+        }
+        assertNotEq(orderContract, address(0));
+
+        assertEq(fromToken.balanceOf(orderContract), amountIn);
+
+        {
+            bytes32 expectedSwapHash =
+                keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData));
+            assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
+        }
+
+        uint256 buyAmount = 0;
+        uint256 feeAmount = 0;
+        {
+            string[] memory headers = new string[](1);
+            headers[0] = "Content-Type: application/json";
+
+            (uint256 status, bytes memory data) = "https://api.cow.fi/mainnet/api/v1/quote".post(
+                headers,
+                string(
+                    abi.encodePacked(
+                        '{"sellToken": "',
+                        vm.toString(address(fromToken)),
+                        '", "buyToken": "',
+                        vm.toString(address(toToken)),
+                        '", "from": "',
+                        vm.toString(whale),
+                        '", "kind": "sell", "sellAmountBeforeFee": "',
+                        vm.toString(amountIn),
+                        '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
+                        "}"
+                    )
+                )
+            );
+
+            assertEq(status, 200);
+
+            string memory json = string(data);
+
+            buyAmount = parseUint(json, ".quote.buyAmount");
+            feeAmount = parseUint(json, ".quote.feeAmount");
+        }
+
+        uint256 amountToSell = amountIn - feeAmount;
+        assertLt(amountToSell, amountIn);
+
+        assertTrue(
+            IPriceChecker(priceChecker).checkPrice(
+                amountIn, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
+            )
+        );
+
+        uint32 validTo = uint32(block.timestamp) + 60 * 60 * 24;
+
+        GPv2Order.Data memory order = GPv2Order.Data({
+            sellToken: CoWIERC20(address(fromToken)),
+            buyToken: CoWIERC20(address(toToken)),
+            receiver: address(this),
+            sellAmount: amountToSell,
+            feeAmount: feeAmount,
+            buyAmount: buyAmount,
+            partiallyFillable: false,
+            kind: GPv2Order.KIND_SELL,
+            sellTokenBalance: GPv2Order.BALANCE_ERC20,
+            buyTokenBalance: GPv2Order.BALANCE_ERC20,
+            validTo: validTo,
+            appData: APP_DATA
+        });
+
+        bytes memory signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+
+        bytes32 orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+
+        {
+            uint256 gasBefore = gasleft();
+            bytes4 isValidSignature = Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            uint256 gasAfter = gasleft();
+
+            uint256 gasConsumed = gasBefore.sub(gasAfter);
+
+            console.log("gas consumed:", gasConsumed);
+
+            assertLt(gasConsumed, 1_000_000);
+
+            assertEq(isValidSignature, MAGIC_VALUE);
+        }
+
+        // check that price checker returns false with bad price
+
+        uint256 badAmountOut = buyAmount / 10;
+
+        assertFalse(
+            IPriceChecker(priceChecker).checkPrice(
+                amountToSell, address(fromToken), address(toToken), feeAmount, badAmountOut, priceCheckerData
+            )
+        );
+
+        // check that milkman reverts with bad price
+
+        order.buyAmount = badAmountOut;
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        vm.expectRevert("invalid_min_out");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.buyAmount = buyAmount;
+
+        // check that milkman reverts if the hash doesn't match the order
+
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        order.validTo = validTo + 10;
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("!match");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.validTo = validTo;
+
+        // check that milkman reverts if the keeper generates a buy order
+
+        order.kind = GPv2Order.KIND_BUY;
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("!kind_sell");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.kind = GPv2Order.KIND_SELL;
+
+        // check that milkman reverts if the validTo is too close
+
+        uint32 badValidTo = uint32(block.timestamp) + 2 * 60;
+        order.validTo = badValidTo;
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("expires_too_soon");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.validTo = validTo;
+
+        // check that milkman reverts for non-fill-or-kill orders
+
+        order.partiallyFillable = true;
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("!fill_or_kill");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.partiallyFillable = false;
+
+        // check that milkman reverts if set to non ERC20 sell balance
+
+        order.sellTokenBalance = GPv2Order.BALANCE_EXTERNAL;
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("!sell_erc20");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.sellTokenBalance = GPv2Order.BALANCE_ERC20;
+
+        // check that milkman reverts if set to non ERC20 buy balance
+
+        order.buyTokenBalance = GPv2Order.BALANCE_INTERNAL;
+        orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+        signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
+        vm.expectRevert("!buy_erc20");
+        Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+        order.buyTokenBalance = GPv2Order.BALANCE_ERC20;
     }
 }
