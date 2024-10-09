@@ -1,6 +1,6 @@
-## Deployment addresses 
+# Deployment addresses 
 
-The Milkman address is **0x11C76AD590ABDFFCD980afEC9ad951B160F02797**, which is the same on Goerli and mainnet. Price checker addresses are per-network.
+The Milkman address is **0x060373D064d0168931dE2AB8DDA7410923d06E88** and it's only available on Mainnet.
 
 For mainnet,
 - SushiSwap (UniV2)
@@ -29,9 +29,13 @@ For mainnet,
 - 'Valid from' price checker decorator: 0x67FE9d6bbeeccb8c7Fe694BE62E08b5fCB5486D7
 - FixedMinOutPriceChecker: 0xcfb9Bc9d2FA5D3Dd831304A0AE53C76ed5c64802
 
-For goerli,
-- SushiSwap (UniV2)
-    - dynamic slippage price checker: 0x5A5633909060c75e5B7cB4952eFad918c711F587
-    - expected out calculator: 0x26eef32497909Bb27E9B40091246c0aA39d1A7dB
-- Hash helper: 0x429A101f42781C53c088392956c95F0A32437b8C
-- FixedMinOutPriceChecker: 0xEB2bD2818F7CF1D92D81810b0d45852bE48E1502
+## How to deploy
+
+The Milkman can be deployed and its contract code verified on Etherscan with a dedicated script:
+
+```sh
+export ETHERSCAN_API_KEY='your Etherscan API key'
+MAINNET_RPC_URL='https://eth.merkle.io'
+PK='your ethereum private key here'
+forge script 'script/DeployStandaloneMilkman.s.sol:DeployStandaloneMilkman' --rpc-url "$MAINNET_RPC_URL" --private-key "$PK" -vvvv --verify --broadcast
+```
