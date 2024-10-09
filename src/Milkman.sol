@@ -44,7 +44,7 @@ contract Milkman {
     address internal immutable ROOT_MILKMAN;
 
     /// @dev Hash of the order data, hashed like so:
-    ///      kekkak256(abi.encode(orderCreator, receiver, fromToken, toToken, amountIn, appData, priceChecker, priceCheckerData)).
+    ///      keccak256(abi.encode(orderCreator, receiver, fromToken, toToken, amountIn, appData, priceChecker, priceCheckerData)).
     ///      In the root contract, it's set to `ROOT_MILKMAN_SWAP_HASH`.
     bytes32 public swapHash = ROOT_MILKMAN_SWAP_HASH;
 
